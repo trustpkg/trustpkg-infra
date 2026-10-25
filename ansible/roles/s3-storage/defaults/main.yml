@@ -1,0 +1,15 @@
+---
+rustfs_data_dir: /srv/s3-data
+rustfs_log_dir: /var/log/rustfs
+rustfs_config_file: /etc/default/rustfs
+
+rustfs_address: "100.111.102.11:9000"
+rustfs_console_address: "100.111.102.11:9001"
+
+rustfs_access_key: "{{ vault_rustfs_access_key }}"
+rustfs_secret_key: "{{ vault_rustfs_secret_key }}"
+
+rustfs_version: "1.0.3"
+rustfs_arch: "aarch64"
+rustfs_deb_url: "https://github.com/RustFS/RustFS/releases/download/1.0.3/rustfs-linux-aarch64-gnu-v1.0.3.deb"
+rustfs_deb_sha256: "0a605aa7b4213585c2810ae29d32b017134048dbdc29d59396db2464db39dfe2"

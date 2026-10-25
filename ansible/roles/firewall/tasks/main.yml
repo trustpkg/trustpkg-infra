@@ -1,0 +1,86 @@
+
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set default incoming policy
+  community.general.ufw:
+    direction: incoming
+    policy: "{{ firewall_default_incoming }}"
+
+- name: Set default outgoing policy
+  community.general.ufw:
+    direction: outgoing
+    policy: "{{ firewall_default_outgoing }}"
+
+- name: Configure UFW logging
+  community.general.ufw:
+    logging: "{{ firewall_logging }}"
+
+- name: Allow SSH through Tailscale
+  community.general.ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+    port: "{{ firewall_ssh_port | string }}"
+    proto: tcp
+
+- name: Remove public SSH rule
+  community.general.ufw:
+    rule: allow
+    port: "{{ firewall_ssh_port | string }}"
+    proto: tcp
+    delete: true
+  when: firewall_restrict_ssh_to_tailscale | bool
+
+- name: Allow public TCP ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item | string }}"
+    proto: tcp
+  loop: "{{ firewall_public_tcp_ports }}"
+
+- name: Allow public UDP ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item | string }}"
+    proto: udp
+  loop: "{{ firewall_public_udp_ports }}"
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+- name: Remove public HTTP rule
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    delete: true
+
+- name: Remove public HTTPS rule
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    delete: true
+    
+- name: Allow S3 API through Tailscale
+  community.general.ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+    port: "9000"
+    proto: tcp
+
+- name: Allow RustFS console through Tailscale
+  community.general.ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+    port: "9001"
+    proto: tcp

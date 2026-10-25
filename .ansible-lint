@@ -1,0 +1,14 @@
+---
+# .ansible-lint
+
+profile: moderate
+
+exclude_paths:
+  - .git/
+  - .cache/
+  - molecule/
+
+skip_list:
+  - fqcn[action-core]
+
+strict: true

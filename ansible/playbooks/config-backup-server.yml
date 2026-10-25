@@ -1,14 +1,14 @@
 ---
-  - name: Configure backup server
-    hosts: backup_server
-    become: true
+- name: Configure backup server
+  hosts: backup_server
+  become: true
 
-    vars_files:
-      - ../secrets/tailscale.vault.yml
-      - ../secrets/rustfs.vault.yml
+  vars_files:
+    - ../secrets/tailscale.vault.yml
+    - ../secrets/rustfs.vault.yml
 
-    roles:
-      - timezone
-      - tailscale
-      - firewall
-      - s3-storage
+  roles:
+    - timezone
+    - tailscale
+    - firewall
+    - s3-storage

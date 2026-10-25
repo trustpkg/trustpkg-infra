@@ -68,7 +68,7 @@
     port: "443"
     proto: tcp
     delete: true
-    
+
 - name: Allow S3 API through Tailscale
   ufw:
     rule: allow

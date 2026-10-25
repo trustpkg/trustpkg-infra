@@ -1,0 +1,33 @@
+
+---
+- name: Install Tailscale
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://tailscale.com/install.sh | sh
+    creates: /usr/bin/tailscale
+
+- name: Enable and start Tailscale daemon
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: true
+    state: started
+
+- name: Check Tailscale connection status
+  ansible.builtin.command:
+    cmd: tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  failed_when: false
+
+- name: Check Tailscale IPv4 address
+  ansible.builtin.command:
+    cmd: tailscale ip -4
+  register: tailscale_ip
+  changed_when: false
+  failed_when: false
+
+- name: Display Tailscale status
+  ansible.builtin.debug:
+    msg:
+      - "Tailscale status command rc: {{ tailscale_status.rc }}"
+      - "Tailscale IPv4: {{ tailscale_ip.stdout | default('not connected') }}"
+      - "Device authorization may be required if no IP is assigned."

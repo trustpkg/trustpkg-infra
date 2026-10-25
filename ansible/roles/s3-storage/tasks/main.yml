@@ -1,0 +1,54 @@
+
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Download RustFS package
+  ansible.builtin.get_url:
+    url: "{{ rustfs_deb_url }}"
+    dest: "/tmp/rustfs_{{ rustfs_version }}_{{ rustfs_arch }}.deb"
+    checksum: "sha256:{{ rustfs_deb_sha256 }}"
+    mode: "0644"
+
+- name: Install RustFS package
+  ansible.builtin.apt:
+    deb: "/tmp/rustfs_{{ rustfs_version }}_{{ rustfs_arch }}.deb"
+    state: present
+
+- name: Create RustFS data directory
+  ansible.builtin.file:
+    path: "{{ rustfs_data_dir }}"
+    state: directory
+    owner: rustfs
+    group: rustfs
+    mode: "0750"
+
+- name: Create RustFS log directory
+  ansible.builtin.file:
+    path: "{{ rustfs_log_dir }}"
+    state: directory
+    owner: rustfs
+    group: rustfs
+    mode: "0750"
+
+- name: Configure RustFS
+  ansible.builtin.template:
+    src: rustfs.env.j2
+    dest: "{{ rustfs_config_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart RustFS
+  no_log: true
+
+- name: Enable and start RustFS
+  ansible.builtin.systemd:
+    name: rustfs
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,3 +1,13 @@
+#cloud-config
+write_files:
+  - path: /etc/profile.d/admin-prompt.sh
+    owner: root:root
+    permissions: "0644"
+    content: |
+      if [ "$USER" = "admin" ]; then
+        PS1='\[\e[1;34m\]\u\[\e[0m\]@\[\e[1;36m\]\h\[\e[0m\] \[\e[1;33m\]\w\[\e[0m\]\$ '
+      fi
+
 users:
   - name: admin
     groups:

@@ -20,39 +20,44 @@ resource "hcloud_firewall" "staging" {
   name = "staging-firewall"
 
   rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "22"
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "22"
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "80"
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "80"
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "443"
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "443"
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   rule {
-    direction = "in"
-    protocol  = "udp"
-    port      = "80"
+    direction  = "in"
+    protocol   = "udp"
+    port       = "80"
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   rule {
-    direction = "in"
-    protocol  = "udp"
-    port      = "443"
+    direction  = "in"
+    protocol   = "udp"
+    port       = "443"
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 }
 
 resource "hcloud_server" "staging" {
   name         = "staging"
-  server_type  = "cpx31"
+  server_type  = "cax21"
   image        = "rocky-10"
   location     = "fsn1"
   firewall_ids = [hcloud_firewall.staging.id]

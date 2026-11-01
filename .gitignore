@@ -1,1 +1,6 @@
 ansible/secrets
+*.tfvars
+*.tfstate
+*.tfstate.backup
+terraform/environments/staging/backend.hcl
+*.env

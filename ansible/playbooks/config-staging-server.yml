@@ -1,0 +1,7 @@
+---
+- name: Configure staging server
+  hosts: staging_server
+  become: true
+
+  roles:
+    - timezone

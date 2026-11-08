@@ -1,0 +1,74 @@
+---
+
+- name: Load application secrets
+  include_vars:
+    file: "{{ role_path }}/secrets/all.yml"
+  no_log: true
+- name: Create deployment directories
+  file:
+    path: "{{ deployment_path }}/trustpkg/{{ dir }}"
+    state: directory
+    owner: admin
+    group: admin
+    mode: '0755'
+  with_items:
+    - data
+    - redis
+    - typesense
+    - database-service
+    - replicator-service
+    - api-service
+    - frontend-app
+  loop_control:
+    loop_var: dir
+
+- name: Create docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ deployment_path }}/trustpkg/docker-compose.yml"
+    owner: admin
+    group: admin
+    mode: '0600'
+  no_log: true
+
+- name: Create .env file for replicator-service
+  template:
+    src: replicator-service.env.j2
+    dest: "{{ deployment_path }}/trustpkg/replicator-service/.env"
+    owner: admin
+    group: admin
+    mode: '0600'
+  no_log: true
+
+- name: Create .env file for api-service
+  template:
+    src: api-service.env.j2
+    dest: "{{ deployment_path }}/trustpkg/api-service/.env"
+    owner: admin
+    group: admin
+    mode: '0600'
+  no_log: true
+
+- name: Create .env file for frontend-app
+  template:
+    src: frontend-app.env.j2
+    dest: "{{ deployment_path }}/trustpkg/frontend-app/.env"
+    owner: admin
+    group: admin
+    mode: '0600'
+  no_log: true
+
+- name: Create .env file for database-service
+  template:
+    src: database-service.env.j2
+    dest: "{{ deployment_path }}/trustpkg/database-service/.env"
+    owner: admin
+    group: admin
+    mode: '0600'
+  no_log: true
+
+- name: execute podman-compose up
+  command: podman-compose up -d
+  args:
+    chdir: "{{ deployment_path }}/trustpkg"
+  become: true

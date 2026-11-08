@@ -1,0 +1,9 @@
+---
+- name: Configure API vhost
+  template:
+    src: trustpkg-api.conf.j2
+    dest: /etc/nginx/sites-available/trustpkg-api.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Apply Nginx configuration

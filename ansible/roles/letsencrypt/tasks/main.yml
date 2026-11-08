@@ -1,0 +1,30 @@
+---
+- name: Validate certificate domains
+  assert:
+    that:
+      - item.domain is match('^[A-Za-z0-9]')
+      - item.domain is not search('[^A-Za-z0-9.-]')
+    fail_msg: "The domain must start with a letter or digit and contain only letters, digits, dots and hyphens."
+  loop: "{{ letsencrypt_sites }}"
+  loop_control:
+    label: "{{ item.domain }}"
+
+- name: Install Certbot
+  package:
+    name: certbot
+    state: present
+
+- name: Create ACME challenge directory
+  file:
+    path: /usr/share/nginx/html/.well-known/acme-challenge
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Obtain certificates for sites
+  include_tasks: certificate.yml
+  loop: "{{ letsencrypt_sites }}"
+  loop_control:
+    loop_var: letsencrypt_site
+    label: "{{ letsencrypt_site.domain }}"

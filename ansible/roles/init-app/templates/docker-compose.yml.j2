@@ -1,0 +1,109 @@
+services:
+  db:
+    image: docker.io/library/postgres:16
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+      TZ: UTC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - "{{ deployment_path }}/trustpkg/data:/var/lib/postgresql/data:Z"
+    networks:
+      - trustpkg-net
+
+  redis:
+    image: docker.io/library/redis:8.8.0
+    restart: always
+    command: redis-server --requirepass "{{ redis_password }}"
+    environment:
+      REDISCLI_AUTH: "{{ redis_password }}"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -qx PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - "{{ deployment_path }}/trustpkg/redis:/data:Z"
+    networks:
+      - trustpkg-net
+
+  typesense:
+    image: docker.io/typesense/typesense:30.2
+    command: >
+      --data-dir /var/lib/typesense/data
+      --api-key="{{ typesense_api_key }}"
+    volumes:
+      - "{{ deployment_path }}/trustpkg/typesense:/var/lib/typesense/data:Z"
+    networks:
+      - trustpkg-net
+
+  database-migrations:
+    image: ghcr.io/trustpkg/trustpkg-api/database-service:latest
+    restart: always
+    env_file:
+      - "{{ deployment_path }}/trustpkg/database-service/.env"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      typesense:
+        condition: service_started
+    networks:
+      - trustpkg-net
+
+  replicator-service:
+    image: ghcr.io/trustpkg/trustpkg-api/replicator-service:latest
+    restart: always
+    env_file:
+      - "{{ deployment_path }}/trustpkg/replicator-service/.env"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      typesense:
+        condition: service_started
+    networks:
+      - trustpkg-net
+
+  api-service:
+    image: ghcr.io/trustpkg/trustpkg-api/api-service:latest
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file:
+      - "{{ deployment_path }}/trustpkg/api-service/.env"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      typesense:
+        condition: service_started
+    networks:
+      - trustpkg-net
+
+  frontend-app:
+    image: ghcr.io/trustpkg/trustpkg:latest
+    restart: always
+    env_file:
+      - "{{ deployment_path }}/trustpkg/frontend-app/.env"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api-service
+    networks:
+      - trustpkg-net
+
+networks:
+  trustpkg-net: 
+    driver: bridge

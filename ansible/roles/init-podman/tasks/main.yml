@@ -1,0 +1,87 @@
+---
+- name: Look up the admin user
+  getent:
+    database: passwd
+    key: admin
+
+- name: Disable Podman Compose warning in admin Bash sessions
+  lineinfile:
+    path: "{{ ansible_facts.getent_passwd.admin[4] }}/.bashrc"
+    regexp: '^\s*(export\s+)?PODMAN_COMPOSE_WARNING_LOGS='
+    line: 'export PODMAN_COMPOSE_WARNING_LOGS=false'
+    create: true
+  become: true
+  become_user: admin
+
+- name: Install Podman
+  package:
+    name: podman
+    state: present
+
+- name: Install DNF configuration tools
+  package:
+    name: dnf-plugins-core
+    state: present
+
+- name: Check whether CRB is enabled
+  command:
+    argv:
+      - dnf
+      - repolist
+      - --enabled
+      - --quiet
+  register: enabled_repositories
+  changed_when: false
+  check_mode: false
+
+- name: Enable the CRB repository
+  command:
+    argv:
+      - dnf
+      - config-manager
+      - --set-enabled
+      - crb
+  when:
+    - not ansible_check_mode
+    - enabled_repositories.stdout is not search('(?m)^crb\s')
+
+- name: Install EPEL repositories
+  package:
+    name:
+      - epel-release
+      - epel-next-release
+    state: present
+  when: not ansible_check_mode
+
+- name: Install Podman Compose
+  package:
+    name: podman-compose
+    state: present
+  when: not ansible_check_mode
+
+- name: Read subordinate ID allocations
+  slurp:
+    src: "{{ item }}"
+  loop:
+    - /etc/subuid
+    - /etc/subgid
+  register: podman_subid_files
+
+- name: Verify admin has subordinate ID allocations
+  assert:
+    that:
+      - item.content | b64decode is search('(?m)^(admin|' ~ ansible_facts.getent_passwd.admin[1] ~ '):[0-9]+:[1-9][0-9]*\s*$')
+    fail_msg: >-
+      No subordinate ID range for admin found in {{ item.item }}.
+      Configure a non-overlapping range before using rootless Podman.
+  loop: "{{ podman_subid_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Enable the admin user manager at boot
+  command:
+    argv:
+      - loginctl
+      - enable-linger
+      - admin
+    creates: /var/lib/systemd/linger/admin

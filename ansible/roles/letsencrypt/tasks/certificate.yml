@@ -1,0 +1,68 @@
+---
+- name: Check existing certificate files
+  stat:
+    path: "/etc/letsencrypt/live/{{ letsencrypt_site.domain }}/{{ item }}"
+    follow: true
+  loop:
+    - fullchain.pem
+    - privkey.pem
+  register: letsencrypt_certificate_files
+
+- name: Verify existing certificate is complete
+  assert:
+    that:
+      - letsencrypt_certificate_files.results[0].stat.exists == letsencrypt_certificate_files.results[1].stat.exists
+    fail_msg: "The certificate for {{ letsencrypt_site.domain }} is incomplete; inspect /etc/letsencrypt before continuing."
+
+- name: Check for an existing vhost
+  stat:
+    path: "/etc/nginx/sites-available/{{ letsencrypt_site.config }}"
+  register: letsencrypt_existing_vhost
+  when: not letsencrypt_certificate_files.results[0].stat.exists
+
+- name: Verify bootstrap will not conflict with an existing vhost
+  assert:
+    that:
+      - not letsencrypt_existing_vhost.stat.exists
+    fail_msg: "The vhost {{ letsencrypt_site.config }} exists but its certificate is missing; resolve this before issuing a certificate."
+  when: not letsencrypt_certificate_files.results[0].stat.exists
+
+- name: Issue certificate using a temporary HTTP vhost
+  when: not letsencrypt_certificate_files.results[0].stat.exists
+  block:
+    - name: Configure temporary ACME vhost
+      template:
+        src: acme.conf.j2
+        dest: /etc/nginx/sites-available/letsencrypt-bootstrap.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Apply Nginx configuration
+
+    - name: Apply temporary ACME vhost
+      meta: flush_handlers
+
+    - name: Obtain Let's Encrypt certificate
+      command:
+        argv:
+          - certbot
+          - certonly
+          - --webroot
+          - --webroot-path
+          - /usr/share/nginx/html
+          - --non-interactive
+          - --agree-tos
+          - --register-unsafely-without-email
+          - --cert-name
+          - "{{ letsencrypt_site.domain }}"
+          - -d
+          - "{{ letsencrypt_site.domain }}"
+  always:
+    - name: Remove temporary ACME vhost
+      file:
+        path: /etc/nginx/sites-available/letsencrypt-bootstrap.conf
+        state: absent
+      notify: Apply Nginx configuration
+
+    - name: Apply Nginx configuration after certificate validation
+      meta: flush_handlers

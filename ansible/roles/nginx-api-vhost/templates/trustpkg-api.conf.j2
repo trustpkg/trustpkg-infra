@@ -1,0 +1,44 @@
+limit_req_zone $binary_remote_addr zone=trustpkg_api:10m rate=100r/s;
+
+map $http_upgrade $trustpkg_api_connection {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ api_service_url }};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /usr/share/nginx/html;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{ api_service_url }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ api_service_url }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ api_service_url }}/privkey.pem;
+
+    client_max_body_size 10m;
+    limit_req zone=trustpkg_api burst=200 nodelay;
+    limit_req_status 429;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $trustpkg_api_connection;
+    }
+}

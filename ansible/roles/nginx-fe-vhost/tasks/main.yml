@@ -1,0 +1,9 @@
+---
+- name: Configure frontend vhost
+  template:
+    src: trustpkg.conf.j2
+    dest: /etc/nginx/sites-available/trustpkg.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Apply Nginx configuration

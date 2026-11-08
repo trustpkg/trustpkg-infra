@@ -33,6 +33,8 @@ module "cloudflare_api_vhost" {
   cloudflare_is_proxied       = false
   cloudflare_zone_id          = var.cloudflare_zone_id
   cloudflare_www_record_value = hcloud_server.staging.ipv6_address
+  cloudflare_ipv4_address     = hcloud_server.staging.ipv4_address
+  create_ipv4_record          = true
 }
 
 module "cloudflare_app_vhost" {
@@ -41,6 +43,8 @@ module "cloudflare_app_vhost" {
   cloudflare_is_proxied       = false
   cloudflare_zone_id          = var.cloudflare_zone_id
   cloudflare_www_record_value = hcloud_server.staging.ipv6_address
+  cloudflare_ipv4_address     = hcloud_server.staging.ipv4_address
+  create_ipv4_record          = true
 }
 
 resource "hcloud_firewall" "staging" {
@@ -71,7 +75,7 @@ resource "hcloud_firewall" "staging" {
 resource "hcloud_server" "staging" {
   name         = "staging"
   server_type  = "cx23"
-  image        = "rocky-10"
+  image        = "centos-stream-9"
   location     = "hel1"
   firewall_ids = [hcloud_firewall.staging.id]
   ssh_keys     = [hcloud_ssh_key.admin.id]

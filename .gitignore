@@ -3,6 +3,7 @@ ansible/secrets
 *.tfstate
 *.tfstate.backup
 terraform/environments/staging/backend.hcl
+terraform/environments/staging/.vault-password
 *.env
 **/.terraform
 */.terraform

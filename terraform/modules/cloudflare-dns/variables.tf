@@ -8,6 +8,18 @@ variable "cloudflare_www_record_value" {
   type        = string
 }
 
+variable "cloudflare_ipv4_address" {
+  description = "IPv4 address for an optional A record"
+  type        = string
+  default     = null
+}
+
+variable "create_ipv4_record" {
+  description = "Whether to create an A record"
+  type        = bool
+  default     = false
+}
+
 variable "record_name" {
   description = "The name for the DNS record"
   type        = string

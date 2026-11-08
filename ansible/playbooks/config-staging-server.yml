@@ -1,7 +1,27 @@
 ---
+- name: Wait for staging server
+  hosts: staging_server
+  gather_facts: false
+
+  tasks:
+    - name: Wait for SSH and Ansible to become available
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
 - name: Configure staging server
   hosts: staging_server
   become: true
 
   roles:
     - timezone
+    - init-nginx
+    - init-podman
+    - role: letsencrypt
+      letsencrypt_sites:
+        - domain: "{{ domain_url }}"
+          config: trustpkg.conf
+        - domain: "{{ api_service_url }}"
+          config: trustpkg-api.conf
+    - nginx-fe-vhost
+    - nginx-api-vhost
+    - init-app

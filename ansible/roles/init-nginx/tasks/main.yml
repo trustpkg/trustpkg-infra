@@ -1,0 +1,62 @@
+---
+- name: Install Nginx
+  package:
+    name: nginx
+    state: latest
+
+- name: Check SELinux status
+  command: getenforce
+  register: nginx_selinux_status
+  changed_when: false
+  check_mode: false
+
+- name: Check Nginx network connection policy
+  command: getsebool httpd_can_network_connect
+  register: nginx_network_policy
+  changed_when: false
+  check_mode: false
+  when: nginx_selinux_status.stdout != 'Disabled'
+
+- name: Allow Nginx to connect to upstream services
+  command: setsebool -P httpd_can_network_connect on
+  when:
+    - nginx_selinux_status.stdout != 'Disabled'
+    - nginx_network_policy.stdout is search('--> off$')
+
+- name: Ensure sites-enabled is included in nginx.conf
+  lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^\s*include\s+sites-enabled/\*;'
+    line: '    include sites-enabled/*;'
+    insertafter: '^http\s*\{'
+  notify: Apply Nginx configuration
+
+- name: Create sites-available directory
+  file:
+    path: /etc/nginx/sites-available
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check is sites-available directory exists
+  stat:
+    path: /etc/nginx/sites-available
+  register: sites_available
+
+- name: Link sites-enabled to sites-available
+  file:
+    path: /etc/nginx/sites-enabled
+    state: link
+    src: /etc/nginx/sites-available
+    owner: root
+    group: root
+  when: sites_available.stat.isdir | default(false)
+  notify: Apply Nginx configuration
+
+- name: Turn on nginx
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+  notify: Apply Nginx configuration
